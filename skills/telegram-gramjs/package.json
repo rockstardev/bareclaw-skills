@@ -1,0 +1,9 @@
+{
+  "name": "skill-telegram-gramjs",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "telegram": "^2.26.0"
+  }
+}
