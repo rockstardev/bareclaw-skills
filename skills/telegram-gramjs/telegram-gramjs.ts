@@ -95,6 +95,16 @@ function assertInsideSandbox(filePath: string): string {
   return real;
 }
 
+// Per-dispatch defensive guarantee. Boot mkdir runs once; if INBOX_DIR
+// or MEDIA_DIR is removed mid-run (operator cleanup, fs remount, container
+// restart racing this process), every subsequent writeFileSync ENOENTs and
+// the relay silently loses forwards until the dir returns. Recursive mkdir
+// is a no-op when dirs exist.
+function ensureInboxDirs(): void {
+  fs.mkdirSync(INBOX_DIR, { recursive: true });
+  fs.mkdirSync(MEDIA_DIR, { recursive: true });
+}
+
 for (const dir of [INBOX_DIR, OUTBOX_DIR, MEDIA_DIR]) {
   fs.mkdirSync(dir, { recursive: true });
 }
@@ -460,6 +470,8 @@ async function main() {
     if (!msg || !msg.peerId) return;
     touchUpdate();
 
+    ensureInboxDirs();
+
     // Get sender info
     const senderId = msg.senderId;
     const isFromSelf = senderId?.equals(me.id);
@@ -662,6 +674,7 @@ async function main() {
       });
 
       // Write to inbox with edited flag
+      ensureInboxDirs();
       const filename = `${Date.now()}-${msg.id}-edit.json`;
       fs.writeFileSync(
         path.join(INBOX_DIR, filename),
@@ -771,6 +784,7 @@ async function main() {
         });
 
         // Write to inbox as reaction event
+        ensureInboxDirs();
         const filename = `${Date.now()}-${msgId}-reaction.json`;
         fs.writeFileSync(
           path.join(INBOX_DIR, filename),
